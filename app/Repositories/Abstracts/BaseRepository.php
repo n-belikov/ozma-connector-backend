@@ -3,6 +3,7 @@
 namespace App\Repositories\Abstracts;
 
 use Illuminate\Container\Container as Application;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -126,6 +127,16 @@ abstract class BaseRepository implements RepositoryInterface
     public function find($id, array $columns = ['*'])
     {
         $result = $this->model->findOrFail($id, $columns);
+        $this->resetModel();
+        return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function all(array $columns = ['*']): Collection
+    {
+        $result = $this->model instanceof Builder ? $this->model->get($columns) : $this->model->all($columns);
         $this->resetModel();
         return $result;
     }

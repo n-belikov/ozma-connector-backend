@@ -12,9 +12,10 @@ use Illuminate\Support\Collection;
 interface RepositoryInterface
 {
     /**
+     * @param array $columns
      * @return Collection<T>|T[]
      */
-    public function all(): Collection;
+    public function all(array $columns = ['*']): Collection;
 
     /**
      * @param array $relations

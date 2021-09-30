@@ -2,7 +2,7 @@
 
 namespace App\Services\Ozma\Abstracts;
 
-use App\Domain\Ozma\Order;
+use App\Domain\Connectors\Order;
 use Illuminate\Support\Collection;
 
 /**
@@ -15,6 +15,8 @@ interface OzmaInterface
      * @param Order[]|Collection $orders
      */
     public function sync(Collection $orders): void;
+
+    public function syncStages(): void;
 
     public function syncOrderTrackNumber(): void;
 }

@@ -2,7 +2,11 @@
 
 namespace App\Services\Ozma;
 
-use App\Domain\Connectors\Order;
+use App\Domain\Connectors\Order as OrderConnector;
+use App\Domain\Ozma\OzmaOrderBoard;
+use App\Events\Ozma\OrderStageChangeEvent;
+use App\Exceptions\Ozma\SyncErrorException;
+use App\Models\Ozma\Order;
 use App\Domain\Enum\Ozma\OzmaStage;
 use App\Domain\Ozma\OzmaGoods;
 use App\Domain\Ozma\OzmaOrder;
@@ -81,16 +85,48 @@ class OzmaService implements OzmaInterface
     }
 
     /**
-     * @param Collection<Order> $orders
+     * @param Collection<OrderConnector> $orders
      */
     public function sync(Collection $orders): void
     {
-        $this->orderRepository->all();
 
-//        $this->pushNewOrder($orders->first());
+//        $result = $this->pushNewOrder($orders->first());
     }
 
-    private function pushNewOrder(Order $order): int
+    /**
+     * @inheritDoc
+     */
+    public function syncStages(): void
+    {
+        /** @var Order[]|Collection<Order> $orders */
+        $orders = $this->orderRepository->all()->keyBy("ozma_id");
+        $result = $this->request("get", "/views/by_name/data/" . OzmaTable::ORDERS_BOARD . "/entries");
+
+        $json = json_decode($result->getBody()->getContents());
+
+        $json = OzmaOrderBoard::collection($json)
+            ->whereIn("id", $orders->pluck("ozma_id"))
+            ->values();
+
+        foreach ($json as $item) {
+            $order = $orders[$item->id];
+            if ($item->stage !== $order->ozma_stage_id) {
+                event(
+                    new OrderStageChangeEvent($order, $item)
+                );
+                $orders[$item->id] = $this->orderRepository->update([
+                    "ozma_stage_id" => $item->stage,
+                ], $order->id);
+            }
+        }
+    }
+
+    /**
+     * @param OrderConnector $order
+     * @return Order
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    private function pushNewOrder(OrderConnector $order): Order
     {
         $object = $this->mapper->mapTo($order, OzmaOrder::class);
         assert($object instanceof OzmaOrder);
@@ -99,9 +135,13 @@ class OzmaService implements OzmaInterface
         $transactionItem = new TransactionEntity(TransactionEntity::INSERT, "data", OzmaTable::ORDERS);
         $transactionItem->setEntries($object->toArray());
 
-        $orderId = $this->change(
-            (new Transaction())->push($transactionItem)
-        )->results[0]->id;
+        try {
+            $orderId = $this->change(
+                (new Transaction())->push($transactionItem)
+            )->results[0]->id;
+        } catch (ClientException $exception) {
+            throw new SyncErrorException("Error: " . implode(",", $transactionItem->toArray()));
+        }
 
         /** @var OzmaGoods[] $object */
         $object = $this->mapper->mapTo($order->getItems(), OzmaGoods::class)->map(function (OzmaGoods $goods) use ($orderId) {
@@ -116,11 +156,20 @@ class OzmaService implements OzmaInterface
             $transaction->push($transactionItem);
         }
 
-        $result = $this->change(
-            $transaction
-        );
+        try {
+            $this->change(
+                $transaction
+            );
+        } catch (ClientException $exception) {
+            throw new SyncErrorException("Error sync goods");
+        }
 
-        dd($object, $result);
+        return $this->orderRepository->create([
+            "connector_id" => $order->getId(),
+            "connector_type" => $order->getSource()->value(),
+            "ozma_id" => $orderId,
+            "ozma_stage_id" => 7
+        ]);
     }
 
     public function syncOrderTrackNumber(): void
@@ -133,17 +182,17 @@ class OzmaService implements OzmaInterface
         $method = strtolower($method);
         $token = $this->getAccessToken();
 
-        try {
-            $result = $this->client->request($method, $url, [
-                RequestOptions::HEADERS => [
-                    "Authorization" => "Bearer {$token}",
-                    "Content-Type" => "application/json"
-                ],
-                $method !== "get" ? RequestOptions::JSON : RequestOptions::QUERY => $params
-            ]);
-        } catch (ClientException $exception) {
-            dd(json_decode($exception->getResponse()->getBody()->getContents()));
-        }
+//        try {
+        $result = $this->client->request($method, $url, [
+            RequestOptions::HEADERS => [
+                "Authorization" => "Bearer {$token}",
+                "Content-Type" => "application/json"
+            ],
+            $method !== "get" ? RequestOptions::JSON : RequestOptions::QUERY => $params
+        ]);
+//        } catch (ClientException $exception) {
+//            dd("[{$method}] {$url}", json_decode($exception->getResponse()->getBody()->getContents()));
+//        }
 
         return $result;
     }

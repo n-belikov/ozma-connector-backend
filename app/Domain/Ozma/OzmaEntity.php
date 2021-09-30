@@ -24,7 +24,7 @@ abstract class OzmaEntity
 
     /**
      * @param \stdClass $object
-     * @return static[]
+     * @return static[]|Collection<static>
      */
     public static function collection(\stdClass $object): Collection
     {

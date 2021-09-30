@@ -37,7 +37,7 @@ class EbayConnector implements BaseConnectorInterface
 
     private bool $cacheApi = true;
 
-    private int $cacheApiTtl = 300;
+    private int $cacheApiTtl = 900;
 
     /**
      * @param CacheRepository $cacheRepository

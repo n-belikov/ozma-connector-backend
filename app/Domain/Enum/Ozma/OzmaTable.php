@@ -17,6 +17,6 @@ class OzmaTable extends BaseEnum
     const GOODS_DISPATCH = "goods_dispatch_table";
 
     // Для записи
-    const ORDERS = "orders"; // Для создания
-    const GOODS = "goods_table";
+    const ORDERS = "orders";
+    const GOODS = "goods";
 }
