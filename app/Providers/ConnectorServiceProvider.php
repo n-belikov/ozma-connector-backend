@@ -46,14 +46,18 @@ class ConnectorServiceProvider extends ServiceProvider
                     config("services.ebay.base_url"),
                     config("services.ebay.client_id"),
                     config("services.ebay.client_secret"),
-                    config("services.ebay.refresh_token")
+                    config("services.ebay.refresh_token"),
+                    config("services.connectors-cache.enable"),
+                    config("services.connectors-cache.ttl")
                 ),
                 ConnectorType::SITE => new SiteConnector(
                     $this->app[CacheRepository::class],
                     config("services.site.url"),
                     config("services.site.secret_id"),
                     config("services.site.secret_key"),
-                    config("services.site.version")
+                    config("services.site.version"),
+                    config("services.connectors-cache.enable"),
+                    config("services.connectors-cache.ttl")
                 )
             ];
 

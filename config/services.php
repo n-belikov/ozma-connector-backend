@@ -14,6 +14,11 @@ return [
     |
     */
 
+    'connectors-cache' => [
+        'enable' => env("CONNECTORS_CACHE_ENABLE", false),
+        'ttl' => env("CONNECTORS_CACHE_TTL", 900)
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),

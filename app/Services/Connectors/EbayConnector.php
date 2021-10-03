@@ -37,9 +37,9 @@ class EbayConnector implements BaseConnectorInterface
 
     private string $apiTokenUrl = "https://api.ebay.com/identity/v1/oauth2/token";
 
-    private bool $cacheApi = true;
+    private bool $apiCacheEnable = true;
 
-    private int $cacheApiTtl = 900;
+    private int $apiCacheTtl = 900;
 
     /**
      * @param CacheRepository $cacheRepository
@@ -53,7 +53,9 @@ class EbayConnector implements BaseConnectorInterface
         string          $baseUrl,
         string          $clientId,
         string          $clientSecret,
-        string          $refreshToken
+        string          $refreshToken,
+        bool            $cacheEnable = false,
+        int             $cacheTtl = 0
     )
     {
         $this->cacheRepository = $cacheRepository;
@@ -63,6 +65,9 @@ class EbayConnector implements BaseConnectorInterface
         $this->clientId = $clientId;
         $this->clientSecret = $clientSecret;
         $this->refreshToken = $refreshToken;
+
+        $this->apiCacheEnable = $cacheEnable;
+        $this->apiCacheTtl = $cacheTtl;
     }
 
     /**
@@ -267,7 +272,7 @@ class EbayConnector implements BaseConnectorInterface
      */
     private function request(string $path, array $params = [], string $method = "get"): ?string
     {
-        if ($this->cacheApi) {
+        if ($this->apiCacheEnable) {
             $hashKey = "ebay.api." . md5($path . json_encode($params) . $method);
             if ($this->cacheRepository->has($hashKey)) {
                 return $this->cacheRepository->get($hashKey);
@@ -293,8 +298,8 @@ class EbayConnector implements BaseConnectorInterface
                 ]
             )->getBody()->getContents();
 
-            if ($this->cacheApi) {
-                $this->cacheRepository->put($hashKey, $request, $this->cacheApiTtl);
+            if ($this->apiCacheEnable) {
+                $this->cacheRepository->put($hashKey, $request, $this->apiCacheTtl);
             }
 
         } catch (ClientException $exception) {

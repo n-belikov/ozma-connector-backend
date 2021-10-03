@@ -36,6 +36,10 @@ class SiteConnector implements BaseConnectorInterface
 
     private Client $client;
 
+    private bool $apiCacheEnable = true;
+
+    private int $apiCacheTtl = 900;
+
     /**
      * @param CacheRepository $cacheRepository
      * @param string $url
@@ -48,7 +52,9 @@ class SiteConnector implements BaseConnectorInterface
         string          $url,
         string          $secretId,
         string          $secretKey,
-        string          $version
+        string          $version,
+        bool            $cacheEnable = false,
+        int             $cacheTtl = 0
     )
     {
         $this->cacheRepository = $cacheRepository;
@@ -58,6 +64,9 @@ class SiteConnector implements BaseConnectorInterface
         $this->version = $version;
 
         $this->client = new Client();
+
+        $this->apiCacheEnable = $cacheEnable;
+        $this->apiCacheTtl = $cacheTtl;
     }
 
     public function getOrders(int $page, int $perPage = 10): LengthAwarePaginator
@@ -91,7 +100,7 @@ class SiteConnector implements BaseConnectorInterface
                 Carbon::parse($item->order_createdon),
                 $paymentDate,
                 $item->delivery->name,
-                null,
+                $item->address->metro ?? null, // В системе сайта - это трек номер
                 $status,
                 new OrderAddress(
                     $item->address->country ?? "",
@@ -146,22 +155,34 @@ class SiteConnector implements BaseConnectorInterface
 
     public function pushTrackNumber(int $orderId, string $trackNumber, array $items): bool
     {
-        // TODO: Implement pushTrackNumber() method.
+        return false;
     }
 
     private function request(array $params = []): ?string
     {
+        if ($this->apiCacheEnable) {
+            $hashKey = "site.api." . md5(json_encode($params));
+            if ($this->cacheRepository->has($hashKey)) {
+                return $this->cacheRepository->get($hashKey);
+            }
+        }
+
+
         $token = new JwtGenerator(md5($this->version . $this->secretKey));
 
-        $result = $this->client->get($this->url, [
+        $request = $this->client->get($this->url, [
             RequestOptions::QUERY => $params,
             RequestOptions::HEADERS => [
                 "Authorization" => $token = $token->make([
                     "id" => $this->secretId
                 ])
             ]
-        ]);
+        ])->getBody()->getContents();
 
-        return $result->getBody()->getContents();
+        if ($this->apiCacheEnable) {
+            $this->cacheRepository->put($hashKey, $request, $this->apiCacheTtl);
+        }
+
+        return $request;
     }
 }
