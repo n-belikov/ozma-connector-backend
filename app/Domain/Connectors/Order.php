@@ -22,24 +22,26 @@ class Order implements Arrayable
     private ?Carbon $dateOfPay;
     private ?string $deliveryType;
     private ?string $trackNumber;
-    private string $status;
+    private OrderStatus $status;
     private ?OrderAddress $address;
 
     /** @var Collection<OrderItem> */
     private Collection $items;
+    private OrderPriceSummary $orderPriceSummary;
 
     public function __construct(
-        ConnectorType $source,
-        string        $id,
-        string        $customer,
-        string        $customerEmail,
-        string        $customerPhone,
-        Carbon        $dateOfSale,
-        ?Carbon       $dateOfPay,
-        ?string       $deliveryType,
-        ?string       $trackNumber,
-        string        $status,
-        ?OrderAddress $address = null
+        ConnectorType     $source,
+        string            $id,
+        string            $customer,
+        string            $customerEmail,
+        string            $customerPhone,
+        Carbon            $dateOfSale,
+        ?Carbon           $dateOfPay,
+        ?string           $deliveryType,
+        ?string           $trackNumber,
+        OrderStatus       $status,
+        ?OrderAddress     $address = null,
+        OrderPriceSummary $orderPriceSummary
     )
     {
         $this->source = $source;
@@ -53,6 +55,7 @@ class Order implements Arrayable
         $this->trackNumber = $trackNumber;
         $this->status = $status;
         $this->address = $address;
+        $this->orderPriceSummary = $orderPriceSummary;
 
         $this->items = new Collection();
     }
@@ -130,9 +133,9 @@ class Order implements Arrayable
     }
 
     /**
-     * @return string
+     * @return OrderStatus
      */
-    public function getStatus(): string
+    public function getStatus(): OrderStatus
     {
         return $this->status;
     }
@@ -157,10 +160,19 @@ class Order implements Arrayable
             "dateOfPay" => $this->dateOfPay ? $this->dateOfPay->toDateTimeString() : null,
             "deliveryType" => $this->deliveryType,
             "trackNumber" => $this->trackNumber,
-            "status" => $this->status,
+            "status" => $this->status->value(),
             "address" => $this->address->toArray(),
-            "items" => $this->items->toArray()
+            "items" => $this->items->toArray(),
+            "orderPriceSummary" => $this->orderPriceSummary->toArray()
         ];
+    }
+
+    /**
+     * @return OrderPriceSummary
+     */
+    public function getOrderPriceSummary(): OrderPriceSummary
+    {
+        return $this->orderPriceSummary;
     }
 
     /**

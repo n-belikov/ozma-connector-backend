@@ -5,6 +5,8 @@ namespace App\Services\Connectors;
 use App\Domain\Connectors\Order;
 use App\Domain\Connectors\OrderAddress;
 use App\Domain\Connectors\OrderItem;
+use App\Domain\Connectors\OrderPriceSummary;
+use App\Domain\Connectors\OrderStatus;
 use App\Domain\Enum\Connectors\ConnectorType;
 use App\Services\Connectors\Abstracts\BaseConnectorInterface;
 use Carbon\Carbon;
@@ -82,6 +84,29 @@ class EbayConnector implements BaseConnectorInterface
             $shippingTo = $item["fulfillmentStartInstructions"][0]["shippingStep"]["shipTo"] ?? null;
             $payment = $item["paymentSummary"]["payments"][0] ?? null;
 
+
+            $status = $item["orderFulfillmentStatus"];
+            $paymentStatus = $payment["paymentStatus"] ?? null;
+            if ($paymentStatus && $status === "NOT_STARTED") {
+                $status = $paymentStatus;
+            }
+
+            switch ($status) {
+                default:
+                case "NOT_STARTED":
+                    $status = OrderStatus::notStarted();
+                    break;
+                case "PAID":
+                    $status = OrderStatus::paid();
+                    break;
+                case "IN_PROGRESS":
+                    $status = OrderStatus::inProgress();
+                    break;
+                case "FULFILLED":
+                    $status = OrderStatus::fulfilled();
+                    break;
+            }
+
             $order = new Order(
                 ConnectorType::ebay(),
                 $item["orderId"] ?? "",
@@ -92,15 +117,21 @@ class EbayConnector implements BaseConnectorInterface
                 $payment && isset($payment["paymentDate"]) ? Carbon::parse($payment["paymentDate"]) : null,
                 null,
                 null,
-                $item["orderFulfillmentStatus"],
+                $status,
                 new OrderAddress(
-                    $shippingTo["contactAddress"]["CountryCode"] ?? "",
+                    $shippingTo["contactAddress"]["countryCode"] ?? "",
                     $shippingTo["contactAddress"]["stateOrProvince"] ?? "",
                     $shippingTo["contactAddress"]["city"] ?? "",
                     $shippingTo["contactAddress"]["addressLine1"] ?? "",
                     $shippingTo["fullName"],
                     $shippingTo["contactAddress"]["postalCode"] ?? "",
                     $phone
+                ),
+                new OrderPriceSummary(
+                    $item["pricingSummary"]["priceSubtotal"]["value"] ?? "0",
+                    $item["pricingSummary"]["deliveryCost"]["value"] ?? "0",
+                    $item["pricingSummary"]["tax"]["value"] ?? "0",
+                    $item["pricingSummary"]["total"]["value"] ?? "0"
                 )
             );
 
@@ -109,7 +140,7 @@ class EbayConnector implements BaseConnectorInterface
                     new OrderItem(
                         $lineItem["lineItemId"],
                         $lineItem["title"],
-                        $lineItem["total"]["value"],
+                        $lineItem["lineItemCost"]["value"],
                         $lineItem["quantity"]
                     )
                 );

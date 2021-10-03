@@ -3,6 +3,7 @@
 namespace App\Services\Ozma;
 
 use App\Domain\Connectors\Order as OrderConnector;
+use App\Domain\Connectors\OrderStatus;
 use App\Domain\Ozma\OzmaOrderBoard;
 use App\Events\Ozma\OrderStageChangeEvent;
 use App\Exceptions\Ozma\SyncErrorException;
@@ -90,7 +91,28 @@ class OzmaService implements OzmaInterface
     public function sync(Collection $orders): void
     {
 
-//        $result = $this->pushNewOrder($orders->first());
+        $orders = $orders->filter(fn(OrderConnector $item) => $item->getStatus() !== OrderStatus::notStarted());
+        $orders = $orders->slice(0, 10);
+
+
+        /** @var Order[]|Collection<Order> $databaseOrders */
+        $databaseOrders = $this->orderRepository->all();
+
+        /** @var OrderConnector $order */
+        foreach ($orders as $order) {
+            /** @var Order|null $item */
+            $item = $databaseOrders->where("connector_id", $order->getId())->where("connector_type", $order->getSource()->value())->first();
+            if ($item) {
+                $this->updateOrder(
+                    $order,
+                    $item->ozma_id
+                );
+            } else {
+                $this->pushNewOrder(
+                    $order
+                );
+            }
+        }
     }
 
     /**
@@ -131,7 +153,7 @@ class OzmaService implements OzmaInterface
         $object = $this->mapper->mapTo($order, OzmaOrder::class);
         assert($object instanceof OzmaOrder);
 
-        $object->setStage(OzmaStage::notPaid());
+        $object->setStage($stage = OzmaStage::notPaid());
         $transactionItem = new TransactionEntity(TransactionEntity::INSERT, "data", OzmaTable::ORDERS);
         $transactionItem->setEntries($object->toArray());
 
@@ -168,8 +190,56 @@ class OzmaService implements OzmaInterface
             "connector_id" => $order->getId(),
             "connector_type" => $order->getSource()->value(),
             "ozma_id" => $orderId,
-            "ozma_stage_id" => 7
+            "ozma_stage_id" => $stage
         ]);
+    }
+
+    /**
+     * @param OrderConnector $order
+     * @return Order
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    private function updateOrder(OrderConnector $order, int $orderId): void
+    {
+        $object = $this->mapper->mapTo($order, OzmaOrder::class);
+        assert($object instanceof OzmaOrder);
+
+        $array = $object->toArray();
+        if (!($object->stage ?? false)) {
+            unset($array["stage"]);
+        }
+        $transactionItem = new TransactionEntity(TransactionEntity::UPDATE, "data", OzmaTable::ORDERS);
+        $transactionItem->setId($orderId)->setEntries($array);
+
+        try {
+            $this->change(
+                (new Transaction())->push($transactionItem)
+            );
+        } catch (ClientException $exception) {
+            throw new SyncErrorException("Error: " . json_encode(json_decode($exception->getResponse()->getBody()->getContents()), JSON_PRETTY_PRINT) . "\n" . json_encode($transactionItem->toArray(), JSON_PRETTY_PRINT));
+        }
+
+        // TODO: fix
+//        /** @var OzmaGoods[] $object */
+//        $object = $this->mapper->mapTo($order->getItems(), OzmaGoods::class)->map(function (OzmaGoods $goods) use ($orderId) {
+//            $goods->order = $orderId;
+//            return $goods;
+//        });
+//
+//        $transaction = new Transaction();
+//        foreach ($object as $item) {
+//            $transactionItem = new TransactionEntity(TransactionEntity::INSERT, "data", OzmaTable::GOODS);
+//            $transactionItem->setEntries($item->toArray());
+//            $transaction->push($transactionItem);
+//        }
+//
+//        try {
+//            $this->change(
+//                $transaction
+//            );
+//        } catch (ClientException $exception) {
+//            throw new SyncErrorException("Error sync goods");
+//        }
     }
 
     public function syncOrderTrackNumber(): void
@@ -224,6 +294,19 @@ class OzmaService implements OzmaInterface
 
         $this->cacheRepository->put($this->cacheKey, $token, Carbon::now()->addSeconds($response->expires_in));
         return $token;
+    }
+
+    /**
+     * @param string $table
+     * @param array $parameters
+     * @param string $scheme
+     * @return \stdClass
+     */
+    public function getView(string $table, array $parameters = [], string $scheme = "data"): \stdClass
+    {
+        $result = $this->request("get", "/views/by_name/{$scheme}/{$table}/entries", $parameters);
+
+        return json_decode($result->getBody()->getContents());
     }
 
     /**
