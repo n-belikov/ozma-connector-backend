@@ -2,7 +2,7 @@
 
 namespace App\Services\Connectors\Abstracts;
 
-use App\Domain\Ozma\Order;
+use App\Domain\Connectors\Order;
 use App\Domain\DTO\Connectors\LineItemData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;

@@ -35,7 +35,7 @@ class OrderToOzmaOrderMapper implements MapperInterface
             "email" => $object->getCustomerEmail(),
             "phone" => $object->getCustomerPhone(),
             "sale_date" => $object->getDateOfSale()->toDateTimeString(),
-            "payment_date" => $object->getDateOfPay()->toDateTimeString(),
+            "payment_date" => $object->getDateOfPay() ? $object->getDateOfPay()->toDateTimeString() : null,
             "delivery_status" => $object->getStatus(),
             "address_text" => "address_text",
             "country" => $object->getAddress()->getCountry(),

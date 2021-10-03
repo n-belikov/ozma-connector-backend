@@ -10,7 +10,10 @@ use App\Domain\Enum\BaseEnum;
  */
 class ConnectorType extends BaseEnum
 {
+    const SITE = "site";
+
     const EBAY = "ebay";
+
 
     /**
      * @return BaseEnum
@@ -20,13 +23,23 @@ class ConnectorType extends BaseEnum
         return new self(self::EBAY);
     }
 
+    /**
+     * @return BaseEnum
+     */
+    public static function site(): self
+    {
+        return new self(self::SITE);
+    }
+
     public function ozmaSource(): ?string
     {
         switch ($this->value()) {
             case self::EBAY:
                 return "eBay";
+            case self::SITE:
+                return "Сайт";
             default:
-                return null;
+                return $this->value();
         }
     }
 }

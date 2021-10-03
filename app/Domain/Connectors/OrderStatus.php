@@ -18,9 +18,16 @@ class OrderStatus extends BaseEnum
 
     const FULFILLED = "fulfilled";
 
+    const CANCELED = "canceled";
+
     public static function notStarted(): OrderStatus
     {
         return new OrderStatus(self::NOT_STARTED);
+    }
+
+    public static function canceled(): OrderStatus
+    {
+        return new OrderStatus(self::CANCELED);
     }
 
     public static function paid(): OrderStatus

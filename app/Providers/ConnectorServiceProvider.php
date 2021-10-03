@@ -8,6 +8,7 @@ use App\Services\Connectors\Abstracts\ConnectorAggregator;
 use App\Services\Connectors\Abstracts\SyncInterface;
 use App\Services\Connectors\ConnectorAggregatorService;
 use App\Services\Connectors\EbayConnector;
+use App\Services\Connectors\SiteConnector;
 use App\Services\Connectors\SyncService;
 use App\Services\Mapper\Abstracts\Mapper;
 use App\Services\Ozma\Abstracts\OzmaInterface;
@@ -46,6 +47,13 @@ class ConnectorServiceProvider extends ServiceProvider
                     config("services.ebay.client_id"),
                     config("services.ebay.client_secret"),
                     config("services.ebay.refresh_token")
+                ),
+                ConnectorType::SITE => new SiteConnector(
+                    $this->app[CacheRepository::class],
+                    config("services.site.url"),
+                    config("services.site.secret_id"),
+                    config("services.site.secret_key"),
+                    config("services.site.version")
                 )
             ];
 

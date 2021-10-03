@@ -38,12 +38,27 @@ class SyncService implements SyncInterface
      */
     public function syncIn(OutputStyle $style): void
     {
-        $perPage = 30;
+        $connectors = [
+            ConnectorType::EBAY => [
+                "type" => ConnectorType::ebay(),
+                "per_page" => 30,
+            ],
+        ];
+        foreach (ConnectorType::all() as $type) {
+            if (!isset($connectors[$type->value()])) {
+                $connectors[$type->value()] = [
+                    "type" => $type,
+                    "per_page" => 50
+                ];
+            }
+        }
 
         $orders = collect();
         $style->writeln("<info>Load info from connectors...</info>");
 
-        foreach (ConnectorType::all() as $type) {
+        foreach ($connectors as $connector) {
+            $type = $connector["type"];
+            $perPage = $connector["per_page"];
             $pageNumber = 1;
             $count = 0;
             do {
@@ -56,6 +71,7 @@ class SyncService implements SyncInterface
             $style->writeln("<info>Count: {$count}</info>");
             unset($items);
         }
+        $style->writeln("<info>Total: {$orders->count()}</info>");
 
         $style->writeln("<info>Sync in ozma</info>");
         $this->ozmaService->sync($orders);

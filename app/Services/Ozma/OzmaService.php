@@ -162,7 +162,7 @@ class OzmaService implements OzmaInterface
                 (new Transaction())->push($transactionItem)
             )->results[0]->id;
         } catch (ClientException $exception) {
-            throw new SyncErrorException("Error: " . implode(",", $transactionItem->toArray()));
+            throw SyncErrorException::fromResponse("Error sync order", $exception->getResponse(), $transactionItem->toArray());
         }
 
         /** @var OzmaGoods[] $object */
@@ -183,7 +183,7 @@ class OzmaService implements OzmaInterface
                 $transaction
             );
         } catch (ClientException $exception) {
-            throw new SyncErrorException("Error sync goods");
+            throw SyncErrorException::fromResponse("Sync goods error", $exception->getResponse(), $transaction->toArray());
         }
 
         return $this->orderRepository->create([

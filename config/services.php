@@ -35,6 +35,13 @@ return [
         'client_id' => env("EBAY_CLIENT_ID"),
         'client_secret' => env("EBAY_CLIENT_SECRET"),
         'refresh_token' => env("EBAY_REFRESH_TOKEN")
+    ],
+
+    'site' => [
+        'url' => env("SITE_API_URL"),
+        'secret_id' => env("SITE_API_SECRET_ID"),
+        'secret_key' => env("SITE_API_SECRET_KEY"),
+        'version' => env("SITE_API_VERSION")
     ]
 
 ];
