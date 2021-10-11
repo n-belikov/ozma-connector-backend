@@ -26,6 +26,7 @@ class OrderToOzmaOrderMapper implements MapperInterface
         $total = $object->getOrderPriceSummary()->getTotal();
         $tax = $object->getOrderPriceSummary()->getTax();
         $deliveryCost = $object->getOrderPriceSummary()->getDeliveryCost();
+        $discount = $object->getOrderPriceSummary()->getDiscount();
 
         $object = (object)[
             "order_text" => "test",
@@ -51,6 +52,7 @@ class OrderToOzmaOrderMapper implements MapperInterface
             "total_text" => "total_text",
             "delivery_cost" => $deliveryCost / 100,
             "tax" => $tax / 100,
+            "discount" => $discount / 100,
             "total_second" => $total / 100,
             "responsible" => null,
         ];

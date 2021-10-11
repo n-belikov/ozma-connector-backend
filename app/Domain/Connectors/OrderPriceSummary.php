@@ -14,18 +14,21 @@ class OrderPriceSummary implements Arrayable
     private int $deliveryCost;
     private int $tax;
     private int $total;
+    private int $discount;
 
     public function __construct(
         string $priceSubtotal,
         string $deliveryCost,
         string $tax,
-        string $total
+        string $total,
+        string $discount = null
     )
     {
         $this->priceSubtotal = intval(floatval($priceSubtotal) * 100);
         $this->deliveryCost = intval(floatval($deliveryCost) * 100);
         $this->tax = intval(floatval($tax) * 100);
         $this->total = intval(floatval($total) * 100);
+        $this->discount = !$discount ? 0 : intval(floatval($discount) * 100);
     }
 
     /**
@@ -60,6 +63,14 @@ class OrderPriceSummary implements Arrayable
         return $this->total;
     }
 
+    /**
+     * @return int
+     */
+    public function getDiscount(): int
+    {
+        return $this->discount;
+    }
+
     public function toArray(): array
     {
         return [
@@ -67,6 +78,7 @@ class OrderPriceSummary implements Arrayable
             "delivery_cost" => $this->deliveryCost,
             "tax" => $this->tax,
             "total" => $this->total,
+            "discount" => $this->discount,
         ];
     }
 }

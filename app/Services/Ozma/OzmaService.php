@@ -92,6 +92,7 @@ class OzmaService implements OzmaInterface
     {
 
         $orders = $orders->filter(fn(OrderConnector $item) => $item->getStatus() !== OrderStatus::notStarted());
+        $orders = $orders->filter(fn (OrderConnector $item) => $item->getOrderPriceSummary()->getDiscount() > 0);
         $orders = $orders->slice(0, 10);
 
 

@@ -115,7 +115,8 @@ class SiteConnector implements BaseConnectorInterface
                     $item->order_cart_cost,
                     $item->order_delivery_cost,
                     '0',
-                    $item->order_cost
+                    $item->order_cost,
+                    $item->coupon->discount_amount
                 )
             );
 
