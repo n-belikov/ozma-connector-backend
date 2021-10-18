@@ -110,6 +110,7 @@ class EbayConnector implements BaseConnectorInterface
                 case "FULFILLED":
                     $status = OrderStatus::fulfilled();
                     break;
+                    // TODO: добавить статус canceled
             }
 
             $order = new Order(

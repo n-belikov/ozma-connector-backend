@@ -19,7 +19,7 @@ class SyncStages extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Выгрузка информации по статусам';
 
     /**
      * Create a new command instance.

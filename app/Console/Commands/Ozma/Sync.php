@@ -19,7 +19,7 @@ class Sync extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Выгрузка данных из коннекторов';
 
     /** @var SyncInterface */
     private SyncInterface $service;
@@ -43,7 +43,6 @@ class Sync extends Command
      */
     public function handle()
     {
-        $this->info("test");
         $this->service->syncIn(
             $this->output
         );

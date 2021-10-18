@@ -25,6 +25,7 @@ class ConnectorServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        // Регистрация интерфейса общения с самой озмой
         $this->app->bind(OzmaInterface::class,
             fn() => new OzmaService(
                 $this->app[OrderRepository::class],
@@ -39,6 +40,8 @@ class ConnectorServiceProvider extends ServiceProvider
             )
         );
 
+        // Регистрация агрегатора коннекторов
+        // Каждый агрегатор нужно указывать через ENUM
         $this->app->bind(ConnectorAggregator::class, function () {
             $connectors = [
                 ConnectorType::EBAY => new EbayConnector(
